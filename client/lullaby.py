@@ -1,3 +1,5 @@
+from fileList import FileList
+
 from PyQt5 import QtWidgets
 
 
@@ -14,12 +16,14 @@ class Lullaby(QtWidgets.QMainWindow):
         self.startButton = QtWidgets.QPushButton('START')
         self.zoomLabel = QtWidgets.QLabel('Zoom')
         self.zoomEntry = QtWidgets.QDoubleSpinBox()
+        self.fileList = FileList()
 
         layout.addWidget(self.preview)
         layout.addWidget(self.startButton)
         settingsLayout.addWidget(self.zoomLabel)
         settingsLayout.addWidget(self.zoomEntry)
         layout.addLayout(settingsLayout)
+        layout.addWidget(self.fileList)
 
         widget.setLayout(layout)
         self.setCentralWidget(widget)
