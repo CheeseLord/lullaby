@@ -130,12 +130,16 @@ class MainActivity : AppCompatActivity() {
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
                 }
+                val recorder = Recorder.Builder()
+                    .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
+                    .build()
+                videoCapture = VideoCapture.withOutput(recorder)
 
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                 try {
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
-                        this, cameraSelector, preview
+                        this, cameraSelector, preview, videoCapture
                     )
                 } catch(exc: Exception) {
                     Log.e(TAG, "Failed to bind camera", exc)
