@@ -1,13 +1,14 @@
 package com.lullaby
 
 import android.content.ContentValues
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.Manifest
 import android.os.Build
 import android.os.Bundle
-import android.Manifest
-import android.content.pm.ActivityInfo
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -17,18 +18,19 @@ import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ExecutorService
 
 import com.lullaby.databinding.ActivityMainBinding
-import java.lang.Exception
 
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
 
+    private var cameraControl: CameraControl? = null
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
 
@@ -38,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
 
         // Request camera permissions
         if (allPermissionsGranted()) {
@@ -51,7 +53,44 @@ class MainActivity : AppCompatActivity() {
 
         viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
 
+        viewBinding.zoomSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                cameraControl!!.setLinearZoom(progress / 100.toFloat())
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
         cameraExecutor = Executors.newSingleThreadExecutor()
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
+                }
+                val recorder = Recorder.Builder()
+                    .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
+                    .build()
+                videoCapture = VideoCapture.withOutput(recorder)
+
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                try {
+                    cameraProvider.unbindAll()
+                    cameraControl = cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, videoCapture
+                    ).cameraControl
+                } catch(exc: Exception) {
+                    Log.e(TAG, "Failed to bind camera", exc)
+                }
+            },
+            ContextCompat.getMainExecutor(this),
+        )
     }
 
     private fun captureVideo() {
@@ -119,36 +158,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-    }
-
-
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
-        cameraProviderFuture.addListener(
-            {
-                val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
-                }
-                val recorder = Recorder.Builder()
-                    .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
-                    .build()
-                videoCapture = VideoCapture.withOutput(recorder)
-
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                try {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        this, cameraSelector, preview, videoCapture
-                    )
-                } catch(exc: Exception) {
-                    Log.e(TAG, "Failed to bind camera", exc)
-                }
-            },
-            ContextCompat.getMainExecutor(this),
-        )
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
