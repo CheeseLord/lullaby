@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
 
         viewBinding.zoomSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                cameraControl!!.setLinearZoom(progress / 100.toFloat())
+                cameraControl!!.setLinearZoom(progress / 200.toFloat())
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
